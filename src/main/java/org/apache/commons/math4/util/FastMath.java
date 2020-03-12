@@ -1639,8 +1639,7 @@ public class FastMath {
             return 1.0;
         } else if (e > 0) { //#2
             return new Split(d).pow(e).full;
-        } 
-	else {
+        } else {
             return new Split(d).reciprocal().pow(-e).full; /*This statement is executed only when e is negative as assured by #2 
 	    						    * therefore -e sent to pow function would revert negative e to positive*/
         }
@@ -3108,10 +3107,6 @@ public class FastMath {
      * @param x number from which absolute value is requested
      * @return abs(x)
      */
-
-    /*Usage of an unsigned shift right operator with a signed object (x) 
-     * the parameter provided to abs is logically signed
-     */
     public static long abs(final long x) {
         final long l = x >>> 63; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB
         // l is one if x negative zero else
@@ -4154,9 +4149,6 @@ public class FastMath {
      * </p>
      * @param d number from which exponent is requested
      * @return exponent for d in IEEE754 representation, without bias
-     */
-    
-    /*Usage of an unsigned shift right operator with a signed object (d) as double number is signed 
      */
     public static int getExponent(final double d) {
         // NaN and Infinite will return 1024 anywho so can use raw bits
