@@ -23,7 +23,6 @@ import org.apache.commons.math4.exception.MathArithmeticException;
 import org.apache.commons.math4.exception.util.LocalizedFormats;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.signedness.qual.Unsigned;
-import org.checkerframework.checker.signedness.qual.SignedPositive;
 
 /**
  * Faster, more accurate, portable alternative to {@link Math} and
@@ -82,6 +81,8 @@ import org.checkerframework.checker.signedness.qual.SignedPositive;
  * </ul>
  * @since 2.2
  */
+
+//@SuppressWarnings("shift.unsigned")
 public class FastMath {
     /** Archimede's constant PI, ratio of circle circumference to diameter. */
     public static final double PI = 105414357.0 / 33554432.0 + 1.984187159361080883e-9;
@@ -100,7 +101,6 @@ public class FastMath {
 
     /** StrictMath.log(Double.MAX_VALUE): {@value} */
     private static final double LOG_MAX_VALUE = StrictMath.log(Double.MAX_VALUE);
- 
     /** Indicator for tables initialization.
      * <p>
      * This compile-time constant should be set to true only if one explicitly
@@ -258,7 +258,7 @@ public class FastMath {
     };
 
     /** Bits of 1/(2*pi), need for reducePayneHanek(). */
-    private static final @SignedPositive long RECIP_2PI[] = new long[] {
+    private static final long RECIP_2PI[] = new long[] {
         (0x28be60dbL << 32) | 0x9391054aL,
         (0x7f09d5f4L << 32) | 0x7d4d3770L,
         (0x36d8a566L << 32) | 0x4f10e410L,
@@ -279,7 +279,7 @@ public class FastMath {
          0x9afed7ecL << 32  };
 
     /** Bits of pi/4, need for reducePayneHanek(). */
-    private static final @SignedPositive long PI_O_4_BITS[] = new long[] {
+    private static final long PI_O_4_BITS[] = new long[] {
         (0xc90fdaa2L << 32) | 0x2168c234L,
         (0xc4c6628bL << 32) | 0x80dc1cd1L };
 
@@ -1632,14 +1632,16 @@ public class FastMath {
      * @since 3.6
      */
 
-    @SuppressWarnings("signedness")
+    @SuppressWarnings("argument.type.incompatible")	
     public static double pow(double d, long e) {
         if (e == 0) {
             return 1.0;
-        } else if (e > 0) {
+        } else if (e > 0) { //#2
             return new Split(d).pow(e).full;
-        } else {
-            return new Split(d).reciprocal().pow(-e).full;
+        } 
+	else {
+            return new Split(d).reciprocal().pow(-e).full; /*This statement is executed only when e is negative as assured by #2 
+	    						    * therefore -e sent to pow function would revert negative e to positive*/
         }
     }
 
@@ -1727,7 +1729,7 @@ public class FastMath {
          * @return d^e, split in high and low bits
          * @since 3.6
          */
-        private Split pow(final @SignedPositive long e) {
+        private Split pow(final @Unsigned long e) {
 
             // prepare result
             Split result = new Split(1);
@@ -2129,9 +2131,10 @@ public class FastMath {
 
         if (shift != 0) {
             shpi0 = (idx == 0) ? 0 : (RECIP_2PI[idx-1] << shift);
-            shpi0 |= RECIP_2PI[idx] >>> (64-shift);
-            shpiA = (RECIP_2PI[idx] << shift) | (RECIP_2PI[idx+1] >>> (64-shift));
-            shpiB = (RECIP_2PI[idx+1] << shift) | (RECIP_2PI[idx+2] >>> (64-shift));
+	    //The logic used by the programmer is to use >>> this operator as a zero fill shift in #(3 - 23) therefore the code does not produce any unexpected output
+            shpi0 |= RECIP_2PI[idx] >>> (64-shift); //#3
+            shpiA = (RECIP_2PI[idx] << shift) | (RECIP_2PI[idx+1] >>> (64-shift)); //#4
+            shpiB = (RECIP_2PI[idx+1] << shift) | (RECIP_2PI[idx+2] >>> (64-shift)); //#5
         } else {
             shpi0 = (idx == 0) ? 0 : RECIP_2PI[idx-1];
             shpiA = RECIP_2PI[idx];
@@ -2139,10 +2142,10 @@ public class FastMath {
         }
 
         /* Multiply input by shpiA */
-        long a = inbits >>> 32;
+        long a = inbits >>> 32; 
         long b = inbits & 0xffffffffL;
 
-        long c = shpiA >>> 32;
+        long c = shpiA >>> 32; //#6
         long d = shpiA & 0xffffffffL;
 
         long ac = a * c;
@@ -2167,7 +2170,7 @@ public class FastMath {
         bitb = (bc & 0x80000000L ) != 0;
 
         prodB += bc << 32;
-        prodA += bc >>> 32;
+        prodA += bc >>> 32; //#7
 
         bitsum = (prodB & 0x8000000000000000L) != 0;
 
@@ -2178,14 +2181,14 @@ public class FastMath {
         }
 
         /* Multiply input by shpiB */
-        c = shpiB >>> 32;
+        c = shpiB >>> 32; //#8
         d = shpiB & 0xffffffffL;
         ac = a * c;
         bc = b * c;
         ad = a * d;
 
         /* Collect terms */
-        ac += (bc + ad) >>> 32;
+        ac += (bc + ad) >>> 32; //#9
 
         bita = (prodB & 0x8000000000000000L) != 0;
         bitb = (ac & 0x8000000000000000L ) != 0;
@@ -2198,7 +2201,7 @@ public class FastMath {
         }
 
         /* Multiply by shpi0 */
-        c = shpi0 >>> 32;
+        c = shpi0 >>> 32; //#10
         d = shpi0 & 0xffffffffL;
 
         bd = b * d;
@@ -2217,18 +2220,18 @@ public class FastMath {
          */
 
         /* This identifies the quadrant */
-        int intPart = (int)(prodA >>> 62);
+        int intPart = (int)(prodA >>> 62); //#11
 
         /* Multiply by 4 */
         prodA <<= 2;
-        prodA |= prodB >>> 62;
+        prodA |= prodB >>> 62; //#12
         prodB <<= 2;
 
         /* Multiply by PI/4 */
-        a = prodA >>> 32;
+        a = prodA >>> 32; //#13
         b = prodA & 0xffffffffL;
 
-        c = PI_O_4_BITS[0] >>> 32;
+        c = PI_O_4_BITS[0] >>> 32; //#14
         d = PI_O_4_BITS[0] & 0xffffffffL;
 
         ac = a * c;
@@ -2237,7 +2240,7 @@ public class FastMath {
         ad = a * d;
 
         long prod2B = bd + (ad << 32);
-        long prod2A = ac + (ad >>> 32);
+        long prod2A = ac + (ad >>> 32); //#15
 
         bita = (bd & 0x8000000000000000L) != 0;
         bitb = (ad & 0x80000000L ) != 0;
@@ -2253,7 +2256,7 @@ public class FastMath {
         bitb = (bc & 0x80000000L ) != 0;
 
         prod2B += bc << 32;
-        prod2A += bc >>> 32;
+        prod2A += bc >>> 32; //#16
 
         bitsum = (prod2B & 0x8000000000000000L) != 0;
 
@@ -2264,14 +2267,14 @@ public class FastMath {
         }
 
         /* Multiply input by pio4bits[1] */
-        c = PI_O_4_BITS[1] >>> 32;
+        c = PI_O_4_BITS[1] >>> 32; //#17
         d = PI_O_4_BITS[1] & 0xffffffffL;
         ac = a * c;
         bc = b * c;
         ad = a * d;
 
         /* Collect terms */
-        ac += (bc + ad) >>> 32;
+        ac += (bc + ad) >>> 32; //#18
 
         bita = (prod2B & 0x8000000000000000L) != 0;
         bitb = (ac & 0x8000000000000000L ) != 0;
@@ -2284,16 +2287,16 @@ public class FastMath {
         }
 
         /* Multiply inputB by pio4bits[0] */
-        a = prodB >>> 32;
+        a = prodB >>> 32; //#19
         b = prodB & 0xffffffffL;
-        c = PI_O_4_BITS[0] >>> 32;
+        c = PI_O_4_BITS[0] >>> 32; //#20
         d = PI_O_4_BITS[0] & 0xffffffffL;
         ac = a * c;
         bc = b * c;
         ad = a * d;
 
         /* Collect terms */
-        ac += (bc + ad) >>> 32;
+        ac += (bc + ad) >>> 32; //#21
 
         bita = (prod2B & 0x8000000000000000L) != 0;
         bitb = (ac & 0x8000000000000000L ) != 0;
@@ -2306,8 +2309,8 @@ public class FastMath {
         }
 
         /* Convert to double */
-        double tmpA = (prod2A >>> 12) / TWO_POWER_52;  // High order 52 bits
-        double tmpB = (((prod2A & 0xfffL) << 40) + (prod2B >>> 24)) / TWO_POWER_52 / TWO_POWER_52; // Low bits
+        double tmpA = (prod2A >>> 12) / TWO_POWER_52;  // High order 52 bits //#22
+        double tmpB = (((prod2A & 0xfffL) << 40) + (prod2B >>> 24)) / TWO_POWER_52 / TWO_POWER_52; // Low bits #23
 
         double sumA = tmpA + tmpB;
         double sumB = -(sumA - tmpA - tmpB);
@@ -3098,9 +3101,8 @@ public class FastMath {
     /*Usage of an unsigned shift right operator with a signed object (x) 
      * the parameter provided to abs is logically signed
      */
-    @SuppressWarnings("signedness")
     public static int abs(final int x) {
-        final int i = x >>> 31;
+        final int i = x >>> 31; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB
         return (x ^ (~i + 1)) + i;
     }
 
@@ -3113,9 +3115,8 @@ public class FastMath {
     /*Usage of an unsigned shift right operator with a signed object (x) 
      * the parameter provided to abs is logically signed
      */
-    @SuppressWarnings("signedness")
     public static long abs(final long x) {
-        final long l = x >>> 63;
+        final long l = x >>> 63; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB
         // l is one if x negative zero else
         // ~l+1 is zero if x is positive, -1 if x is negative
         // x^(~l+1) is x is x is positive, ~x if x is negative
@@ -3172,10 +3173,6 @@ public class FastMath {
      * @return d &times; 2<sup>n</sup>
      */
     
-    /* #1 Usage of an unsigned shift right operator (>>>) with a signed object   
-     * #2 the parameter (d) provided to the function is signed
-     */
-    @SuppressWarnings("signedness")
     public static double scalb(final double d, final int n) {
 
         // first simple and fast handling when 2^n can be represented using normal numbers
@@ -3188,16 +3185,16 @@ public class FastMath {
             return d;
         }
         if (n < -2098) {
-            return (d > 0) ? 0.0 : -0.0; //#2
+            return (d > 0) ? 0.0 : -0.0; 
         }
         if (n > 2097) {
-            return (d > 0) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY; //#2
+            return (d > 0) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY; 
         }
 
         // decompose d
         final long bits = Double.doubleToRawLongBits(d);
         final long sign = bits & 0x8000000000000000L;
-        int  exponent   = ((int) (bits >>> 52)) & 0x7ff; //#1
+        int  exponent   = ((int) (bits >>> 52)) & 0x7ff; //The logic used by the programmer is to use >>> this operator as a zero fill shift therefore the code does not produce unexpected output
         long mantissa   = bits & 0x000fffffffffffffL;
 
         // compute scaled exponent
@@ -4165,10 +4162,9 @@ public class FastMath {
     
     /*Usage of an unsigned shift right operator with a signed object (d) as double number is signed 
      */
-    @SuppressWarnings("signedness")
     public static int getExponent(final double d) {
         // NaN and Infinite will return 1024 anywho so can use raw bits
-        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023;
+        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023; //The logic used by the programmer is to use >>> this operator as a zero fill shift
     }
 
     /**
@@ -4310,9 +4306,7 @@ public class FastMath {
          * @param xa Argument.
          */
 
-	/*Probably initialization checker fails to figure out the initialization of variable inside the loop while(true) 
-	 * which has no condition (due to 'true') that could prevent the initialization of remA and remB*/
-	@SuppressWarnings("initialization")
+	@SuppressWarnings("assignment.type.incompatible")
         CodyWaite(double xa) {
             // Estimate k.
             //k = (int)(xa / 1.5707963267948966);
@@ -4321,7 +4315,7 @@ public class FastMath {
             // Compute remainder.
             double remA;
             double remB;
-            while (true) {
+            while (true) { //#1
                 double a = -k * 1.570796251296997;
                 remA = xa + a;
                 remB = -(remA - xa - a);
@@ -4345,8 +4339,9 @@ public class FastMath {
                 // to an even multiple of pi/2.
                 --k;
             }
-
             this.finalK = k;
+	    /*Initialization checker fails to figure out the initialization of variable inside the loop while(true) #1 
+	     * which has no condition (due to 'true') that could prevent the initialization of remA and remB*/
             this.finalRemA = remA;
             this.finalRemB = remB;
         }
@@ -4371,4 +4366,5 @@ public class FastMath {
         }
     }
 }
+
 
