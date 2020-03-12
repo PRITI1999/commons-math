@@ -82,7 +82,7 @@ import org.checkerframework.checker.signedness.qual.Unsigned;
  * @since 2.2
  */
 
-//@SuppressWarnings("shift.unsigned")
+@SuppressWarnings("shift.unsigned")
 public class FastMath {
     /** Archimede's constant PI, ratio of circle circumference to diameter. */
     public static final double PI = 105414357.0 / 33554432.0 + 1.984187159361080883e-9;
@@ -101,6 +101,7 @@ public class FastMath {
 
     /** StrictMath.log(Double.MAX_VALUE): {@value} */
     private static final double LOG_MAX_VALUE = StrictMath.log(Double.MAX_VALUE);
+
     /** Indicator for tables initialization.
      * <p>
      * This compile-time constant should be set to true only if one explicitly
@@ -2142,7 +2143,7 @@ public class FastMath {
         }
 
         /* Multiply input by shpiA */
-        long a = inbits >>> 32; 
+        long a = inbits >>> 32;
         long b = inbits & 0xffffffffL;
 
         long c = shpiA >>> 32; //#6
@@ -3097,10 +3098,6 @@ public class FastMath {
      * @param x number from which absolute value is requested
      * @return abs(x)
      */
-
-    /*Usage of an unsigned shift right operator with a signed object (x) 
-     * the parameter provided to abs is logically signed
-     */
     public static int abs(final int x) {
         final int i = x >>> 31; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB
         return (x ^ (~i + 1)) + i;
@@ -3172,7 +3169,6 @@ public class FastMath {
      * @param n power of 2
      * @return d &times; 2<sup>n</sup>
      */
-    
     public static double scalb(final double d, final int n) {
 
         // first simple and fast handling when 2^n can be represented using normal numbers
@@ -3185,10 +3181,10 @@ public class FastMath {
             return d;
         }
         if (n < -2098) {
-            return (d > 0) ? 0.0 : -0.0; 
+            return (d > 0) ? 0.0 : -0.0;
         }
         if (n > 2097) {
-            return (d > 0) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY; 
+            return (d > 0) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
         }
 
         // decompose d
@@ -4366,5 +4362,3 @@ public class FastMath {
         }
     }
 }
-
-
