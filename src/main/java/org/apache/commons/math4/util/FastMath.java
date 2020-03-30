@@ -22,7 +22,7 @@ import org.apache.commons.numbers.core.Precision;
 import org.apache.commons.math4.exception.MathArithmeticException;
 import org.apache.commons.math4.exception.util.LocalizedFormats;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.signedness.qual.Unsigned;
+import org.checkerframework.checker.index.qual.NonNegative;
 
 /**
  * Faster, more accurate, portable alternative to {@link Math} and
@@ -81,8 +81,6 @@ import org.checkerframework.checker.signedness.qual.Unsigned;
  * </ul>
  * @since 2.2
  */
-
-@SuppressWarnings("shift.unsigned")
 public class FastMath {
     /** Archimede's constant PI, ratio of circle circumference to diameter. */
     public static final double PI = 105414357.0 / 33554432.0 + 1.984187159361080883e-9;
@@ -1729,7 +1727,7 @@ public class FastMath {
          * @return d^e, split in high and low bits
          * @since 3.6
          */
-        private Split pow(final @Unsigned long e) {
+        private Split pow(final @NonNegative long e) {
 
             // prepare result
             Split result = new Split(1);
@@ -1737,7 +1735,7 @@ public class FastMath {
             // d^(2p)
             Split d2p = new Split(full, high, low);
 
-            for (@Unsigned long p = e; p != 0; p >>>= 1) {
+            for (@NonNegative long p = e; p != 0; p >>>= 1) {
 
                 if ((p & 0x1) != 0) {
                     // accurate multiplication result = result * d^(2p) using Veltkamp TwoProduct algorithm
@@ -2108,6 +2106,12 @@ public class FastMath {
      * @param x number to reduce
      * @param result placeholder where to put the result
      */
+     /*The programmer uses unsigned right shift operator as a zero fill shift in #(3-23) in the function reducePayneHanek() as per my 
+      * understanding of the code snippet after tracing with dummy inputs and the loss of sign bit that might occur due to usage of unsigned 
+      * right shift operator with signed operand as suggested by the checker framework does not produce any undesired result 
+      * in this situation. Therefore the code is safe.
+      */ 
+    @SuppressWarnings("shift.unsigned")
     private static void reducePayneHanek(double x, double result[])
     {
         /* Convert input double to bits */
@@ -2131,7 +2135,6 @@ public class FastMath {
 
         if (shift != 0) {
             shpi0 = (idx == 0) ? 0 : (RECIP_2PI[idx-1] << shift);
-	    //The logic used by the programmer is to use >>> this operator as a zero fill shift in #(3 - 23) therefore the code does not produce any unexpected output
             shpi0 |= RECIP_2PI[idx] >>> (64-shift); //#3
             shpiA = (RECIP_2PI[idx] << shift) | (RECIP_2PI[idx+1] >>> (64-shift)); //#4
             shpiB = (RECIP_2PI[idx+1] << shift) | (RECIP_2PI[idx+2] >>> (64-shift)); //#5
@@ -3098,7 +3101,8 @@ public class FastMath {
      * @return abs(x)
      */
     public static int abs(final int x) {
-        final int i = x >>> 31; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB
+        @SuppressWarnings("shift.unsigned")
+        final int i = x >>> 31; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB. The logic works fine only with unsigned shift operator as per my understanding and the very reason of prohibiting this operation is to warn the user of any undesired result that might occur due to this operation. Therefore the code is safe.
         return (x ^ (~i + 1)) + i;
     }
 
@@ -3108,7 +3112,8 @@ public class FastMath {
      * @return abs(x)
      */
     public static long abs(final long x) {
-        final long l = x >>> 63; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB
+        @SuppressWarnings("shift.unsigned")
+        final long l = x >>> 63; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB. The logic works fine only with unsigned shift operator as per my understanding and the very reason of prohibiting this operation is to warn the user of any undesired result that might occur due to this operation. Therefore the code is safe.
         // l is one if x negative zero else
         // ~l+1 is zero if x is positive, -1 if x is negative
         // x^(~l+1) is x is x is positive, ~x if x is negative
@@ -3185,7 +3190,8 @@ public class FastMath {
         // decompose d
         final long bits = Double.doubleToRawLongBits(d);
         final long sign = bits & 0x8000000000000000L;
-        int  exponent   = ((int) (bits >>> 52)) & 0x7ff; //The logic used by the programmer is to use >>> this operator as a zero fill shift therefore the code does not produce unexpected output
+	@SuppressWarnings("shift.unsigned")
+        int  exponent   = ((int) (bits >>> 52)) & 0x7ff; //The programmer uses unsigned right shift operator as a zero fill shift as per my understanding of the code snippet after tracing with dummy inputs and the loss of information that might occur due to usage of unsigned right shift operator with signed operand as suggested by the checker framework does not produce any undesired result in this situation. Therefore the code is safe. 
         long mantissa   = bits & 0x000fffffffffffffL;
 
         // compute scaled exponent
@@ -4150,9 +4156,10 @@ public class FastMath {
      * @param d number from which exponent is requested
      * @return exponent for d in IEEE754 representation, without bias
      */
+    @SuppressWarnings("shift.unsigned")
     public static int getExponent(final double d) {
         // NaN and Infinite will return 1024 anywho so can use raw bits
-        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023; //The logic used by the programmer is to use >>> this operator as a zero fill shift
+        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023; //The programmer uses unsigned right shift operator as a zero fill shift as per my understanding of the code snippet after tracing with dummy inputs and the loss of sign bit that might occur due to usage of unsigned right shift operator with signed operand as suggested by the checker framework does not produce any undesired result in this situation. Therefore the code is safe. 
     }
 
     /**
@@ -4294,6 +4301,8 @@ public class FastMath {
          * @param xa Argument.
          */
 
+        /*Initialization checker fails to figure out the initialization of variable inside the loop while(true) #1 
+	 * which has no condition (due to 'true') that could prevent the initialization of remA and remB on #24 and #25*/
 	@SuppressWarnings("assignment.type.incompatible")
         CodyWaite(double xa) {
             // Estimate k.
@@ -4328,10 +4337,8 @@ public class FastMath {
                 --k;
             }
             this.finalK = k;
-	    /*Initialization checker fails to figure out the initialization of variable inside the loop while(true) #1 
-	     * which has no condition (due to 'true') that could prevent the initialization of remA and remB*/
-            this.finalRemA = remA;
-            this.finalRemB = remB;
+            this.finalRemA = remA; //#24
+            this.finalRemB = remB; //#25
         }
 
         /**
