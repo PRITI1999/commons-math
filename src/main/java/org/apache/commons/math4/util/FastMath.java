@@ -2314,7 +2314,7 @@ public class FastMath {
 
         /* Convert to double */
         double tmpA = (prod2A >>> 12) / TWO_POWER_52;  // High order 52 bits
-        double tmpB = (((prod2A & 0xfffL) << 40) + (prod2B >>> 24)) / TWO_POWER_52 / TWO_POWER_52;
+        double tmpB = (((prod2A & 0xfffL) << 40) + (prod2B >>> 24)) / TWO_POWER_52 / TWO_POWER_52; // Low bits
 
         double sumA = tmpA + tmpB;
         double sumB = -(sumA - tmpA - tmpB);
@@ -4182,7 +4182,7 @@ public class FastMath {
     @SuppressWarnings("shift.unsigned")
     public static int getExponent(final double d) {
         // NaN and Infinite will return 1024 anywho so can use raw bits
-        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023; 
+        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023;
     }
 
     /**
