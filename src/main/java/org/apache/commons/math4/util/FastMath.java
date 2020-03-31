@@ -1631,6 +1631,8 @@ public class FastMath {
      * @since 3.6
      */
 
+    /* Statement #3 is executed only when e is negative as assured by #2 
+     * therefore -e sent to pow function would revert negative e to positive*/
     @SuppressWarnings("argument.type.incompatible")	
     public static double pow(double d, long e) {
         if (e == 0) {
@@ -1638,8 +1640,7 @@ public class FastMath {
         } else if (e > 0) { //#2
             return new Split(d).pow(e).full;
         } else {
-            return new Split(d).reciprocal().pow(-e).full; /*This statement is executed only when e is negative as assured by #2 
-	    						    * therefore -e sent to pow function would revert negative e to positive*/
+            return new Split(d).reciprocal().pow(-e).full; //#3
         }
     }
 
@@ -2106,8 +2107,8 @@ public class FastMath {
      * @param x number to reduce
      * @param result placeholder where to put the result
      */
-     /*The programmer uses unsigned right shift operator as a zero fill shift in #(3-23) in the function reducePayneHanek() as per my 
-      * understanding of the code snippet after tracing with dummy inputs and the loss of sign bit that might occur due to usage of unsigned 
+     /*The programmer uses unsigned right shift operator as a zero fill shift in the function reducePayneHanek() is determined
+      * after tracing with dummy inputs and the loss of sign bit that might occur due to usage of unsigned 
       * right shift operator with signed operand as suggested by the checker framework does not produce any undesired result 
       * in this situation. Therefore the code is safe.
       */ 
@@ -2135,9 +2136,9 @@ public class FastMath {
 
         if (shift != 0) {
             shpi0 = (idx == 0) ? 0 : (RECIP_2PI[idx-1] << shift);
-            shpi0 |= RECIP_2PI[idx] >>> (64-shift); //#3
-            shpiA = (RECIP_2PI[idx] << shift) | (RECIP_2PI[idx+1] >>> (64-shift)); //#4
-            shpiB = (RECIP_2PI[idx+1] << shift) | (RECIP_2PI[idx+2] >>> (64-shift)); //#5
+            shpi0 |= RECIP_2PI[idx] >>> (64-shift);
+            shpiA = (RECIP_2PI[idx] << shift) | (RECIP_2PI[idx+1] >>> (64-shift));
+            shpiB = (RECIP_2PI[idx+1] << shift) | (RECIP_2PI[idx+2] >>> (64-shift));
         } else {
             shpi0 = (idx == 0) ? 0 : RECIP_2PI[idx-1];
             shpiA = RECIP_2PI[idx];
@@ -2148,7 +2149,7 @@ public class FastMath {
         long a = inbits >>> 32;
         long b = inbits & 0xffffffffL;
 
-        long c = shpiA >>> 32; //#6
+        long c = shpiA >>> 32;
         long d = shpiA & 0xffffffffL;
 
         long ac = a * c;
@@ -2173,7 +2174,7 @@ public class FastMath {
         bitb = (bc & 0x80000000L ) != 0;
 
         prodB += bc << 32;
-        prodA += bc >>> 32; //#7
+        prodA += bc >>> 32;
 
         bitsum = (prodB & 0x8000000000000000L) != 0;
 
@@ -2184,14 +2185,14 @@ public class FastMath {
         }
 
         /* Multiply input by shpiB */
-        c = shpiB >>> 32; //#8
+        c = shpiB >>> 32;
         d = shpiB & 0xffffffffL;
         ac = a * c;
         bc = b * c;
         ad = a * d;
 
         /* Collect terms */
-        ac += (bc + ad) >>> 32; //#9
+        ac += (bc + ad) >>> 32;
 
         bita = (prodB & 0x8000000000000000L) != 0;
         bitb = (ac & 0x8000000000000000L ) != 0;
@@ -2204,7 +2205,7 @@ public class FastMath {
         }
 
         /* Multiply by shpi0 */
-        c = shpi0 >>> 32; //#10
+        c = shpi0 >>> 32;
         d = shpi0 & 0xffffffffL;
 
         bd = b * d;
@@ -2223,18 +2224,18 @@ public class FastMath {
          */
 
         /* This identifies the quadrant */
-        int intPart = (int)(prodA >>> 62); //#11
+        int intPart = (int)(prodA >>> 62);
 
         /* Multiply by 4 */
         prodA <<= 2;
-        prodA |= prodB >>> 62; //#12
+        prodA |= prodB >>> 62;
         prodB <<= 2;
 
         /* Multiply by PI/4 */
-        a = prodA >>> 32; //#13
+        a = prodA >>> 32;
         b = prodA & 0xffffffffL;
 
-        c = PI_O_4_BITS[0] >>> 32; //#14
+        c = PI_O_4_BITS[0] >>> 32;
         d = PI_O_4_BITS[0] & 0xffffffffL;
 
         ac = a * c;
@@ -2243,7 +2244,7 @@ public class FastMath {
         ad = a * d;
 
         long prod2B = bd + (ad << 32);
-        long prod2A = ac + (ad >>> 32); //#15
+        long prod2A = ac + (ad >>> 32);
 
         bita = (bd & 0x8000000000000000L) != 0;
         bitb = (ad & 0x80000000L ) != 0;
@@ -2259,7 +2260,7 @@ public class FastMath {
         bitb = (bc & 0x80000000L ) != 0;
 
         prod2B += bc << 32;
-        prod2A += bc >>> 32; //#16
+        prod2A += bc >>> 32;
 
         bitsum = (prod2B & 0x8000000000000000L) != 0;
 
@@ -2270,14 +2271,14 @@ public class FastMath {
         }
 
         /* Multiply input by pio4bits[1] */
-        c = PI_O_4_BITS[1] >>> 32; //#17
+        c = PI_O_4_BITS[1] >>> 32;
         d = PI_O_4_BITS[1] & 0xffffffffL;
         ac = a * c;
         bc = b * c;
         ad = a * d;
 
         /* Collect terms */
-        ac += (bc + ad) >>> 32; //#18
+        ac += (bc + ad) >>> 32;
 
         bita = (prod2B & 0x8000000000000000L) != 0;
         bitb = (ac & 0x8000000000000000L ) != 0;
@@ -2290,16 +2291,16 @@ public class FastMath {
         }
 
         /* Multiply inputB by pio4bits[0] */
-        a = prodB >>> 32; //#19
+        a = prodB >>> 32;
         b = prodB & 0xffffffffL;
-        c = PI_O_4_BITS[0] >>> 32; //#20
+        c = PI_O_4_BITS[0] >>> 32;
         d = PI_O_4_BITS[0] & 0xffffffffL;
         ac = a * c;
         bc = b * c;
         ad = a * d;
 
         /* Collect terms */
-        ac += (bc + ad) >>> 32; //#21
+        ac += (bc + ad) >>> 32;
 
         bita = (prod2B & 0x8000000000000000L) != 0;
         bitb = (ac & 0x8000000000000000L ) != 0;
@@ -2312,8 +2313,8 @@ public class FastMath {
         }
 
         /* Convert to double */
-        double tmpA = (prod2A >>> 12) / TWO_POWER_52;  // High order 52 bits //#22
-        double tmpB = (((prod2A & 0xfffL) << 40) + (prod2B >>> 24)) / TWO_POWER_52 / TWO_POWER_52; // Low bits #23
+        double tmpA = (prod2A >>> 12) / TWO_POWER_52;  // High order 52 bits
+        double tmpB = (((prod2A & 0xfffL) << 40) + (prod2B >>> 24)) / TWO_POWER_52 / TWO_POWER_52;
 
         double sumA = tmpA + tmpB;
         double sumB = -(sumA - tmpA - tmpB);
@@ -3101,8 +3102,14 @@ public class FastMath {
      * @return abs(x)
      */
     public static int abs(final int x) {
+         /*The logic used by the programmer is to use >>> this operator as a zero fill shift to get the 
+	  * sign bit as the LSB is determined after tracing the code with dummy inputs. 
+	  * The very reason for prohibiting this operation is to warn the user of any undesired result 
+	  * that might occur due to the loss of sign bit which in this situation the user is aware of. 
+	  * Therefore the code is safe.
+	  * */
         @SuppressWarnings("shift.unsigned")
-        final int i = x >>> 31; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB. The logic works fine only with unsigned shift operator as per my understanding and the very reason of prohibiting this operation is to warn the user of any undesired result that might occur due to this operation. Therefore the code is safe.
+        final int i = x >>> 31;
         return (x ^ (~i + 1)) + i;
     }
 
@@ -3112,8 +3119,14 @@ public class FastMath {
      * @return abs(x)
      */
     public static long abs(final long x) {
+         /*The logic used by the programmer is to use >>> this operator as a zero fill shift to get the 
+	  * sign bit as the LSB is determined after tracing the code with dummy inputs. 
+	  * The very reason for prohibiting this operation is to warn the user of any undesired result 
+	  * that might occur due to the loss of sign bit which in this situation the user is aware of. 
+	  * Therefore the code is safe.
+	  * */
         @SuppressWarnings("shift.unsigned")
-        final long l = x >>> 63; //The logic used by the programmer is to use >>> this operator as a zero fill shift to get the signed bit as the LSB. The logic works fine only with unsigned shift operator as per my understanding and the very reason of prohibiting this operation is to warn the user of any undesired result that might occur due to this operation. Therefore the code is safe.
+        final long l = x >>> 63;
         // l is one if x negative zero else
         // ~l+1 is zero if x is positive, -1 if x is negative
         // x^(~l+1) is x is x is positive, ~x if x is negative
@@ -3190,8 +3203,13 @@ public class FastMath {
         // decompose d
         final long bits = Double.doubleToRawLongBits(d);
         final long sign = bits & 0x8000000000000000L;
+        /*The programmer uses unsigned right shift operator as a zero fill shift is determined 
+	 * after tracing with dummy inputs and the loss of information that might occur due to 
+	 * usage of unsigned right shift operator with signed operand as suggested by the checker framework 
+	 * does not produce any undesired result in this situation. Therefore the code is safe.
+	 * */ 
 	@SuppressWarnings("shift.unsigned")
-        int  exponent   = ((int) (bits >>> 52)) & 0x7ff; //The programmer uses unsigned right shift operator as a zero fill shift as per my understanding of the code snippet after tracing with dummy inputs and the loss of information that might occur due to usage of unsigned right shift operator with signed operand as suggested by the checker framework does not produce any undesired result in this situation. Therefore the code is safe. 
+        int  exponent   = ((int) (bits >>> 52)) & 0x7ff; 
         long mantissa   = bits & 0x000fffffffffffffL;
 
         // compute scaled exponent
@@ -4156,10 +4174,15 @@ public class FastMath {
      * @param d number from which exponent is requested
      * @return exponent for d in IEEE754 representation, without bias
      */
+     /*The programmer uses unsigned right shift operator as a zero fill shift is determined 
+      * after tracing with dummy inputs and the loss of sign bit that might occur due to usage
+      * of unsigned right shift operator with signed operand as suggested by the checker framework
+      * does not produce any undesired result in this situation. Therefore the code is safe.
+      * */ 
     @SuppressWarnings("shift.unsigned")
     public static int getExponent(final double d) {
         // NaN and Infinite will return 1024 anywho so can use raw bits
-        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023; //The programmer uses unsigned right shift operator as a zero fill shift as per my understanding of the code snippet after tracing with dummy inputs and the loss of sign bit that might occur due to usage of unsigned right shift operator with signed operand as suggested by the checker framework does not produce any undesired result in this situation. Therefore the code is safe. 
+        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023; 
     }
 
     /**
@@ -4302,7 +4325,9 @@ public class FastMath {
          */
 
         /*Initialization checker fails to figure out the initialization of variable inside the loop while(true) #1 
-	 * which has no condition (due to 'true') that could prevent the initialization of remA and remB on #24 and #25*/
+	 * which has no condition (due to 'true') that could prevent the initialization of remA and remB. 
+	 * Therefore the warning issued on lines indicated #4 and #5 stating that finalRemA and finalRemB is being initialized 
+	 * with remA and remB that might not have been initialized can be categorized as a false warning*/
 	@SuppressWarnings("assignment.type.incompatible")
         CodyWaite(double xa) {
             // Estimate k.
@@ -4337,8 +4362,8 @@ public class FastMath {
                 --k;
             }
             this.finalK = k;
-            this.finalRemA = remA; //#24
-            this.finalRemB = remB; //#25
+            this.finalRemA = remA; //#4
+            this.finalRemB = remB; //#5
         }
 
         /**
